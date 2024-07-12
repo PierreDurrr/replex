@@ -363,13 +363,10 @@ impl PlexClient {
         //endpoint is buggy, if llex has a cached version then it doesnt need a plex token
         // but if not cached then a server admin token is needed
         let mut token = config.token.clone();
-        if token.is_none() {
-            token = Some(self.x_plex_token.clone());
-        };
 
         headers.insert(
             "X-Plex-Token",
-            header::HeaderValue::from_str(token.unwrap().as_str()).unwrap(),
+            header::HeaderValue::from_str(token.as_str()).unwrap(),
         );
         headers.insert(
             "Accept",
