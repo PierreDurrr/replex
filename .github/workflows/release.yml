@@ -24,7 +24,7 @@ on:
   #     - '**.md'
 
 env:
-  REGISTRY_IMAGE: ghcr.io/lostb1t/replex
+  REGISTRY_IMAGE: ghcr.io/pierredurrr/replex
 
 permissions:
   contents: write
