@@ -9,9 +9,7 @@ on:
         required: true
         default: false
 
-  pull_request_target:
-    types:
-      - closed
+  push:
     branches:
       - main
     paths-ignore:
@@ -32,7 +30,6 @@ concurrency:
 
 jobs:
   get-next-version:
-    if: github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch'
     uses: semantic-release-action/next-release-version/.github/workflows/next-release-version.yml@v4
 
   build:
@@ -45,14 +42,10 @@ jobs:
           - release_for: x86_64 Linux
             os: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
-            bin: replex
-            command: build
 
           - release_for: ARM64 Linux
             os: ubuntu-22.04
             target: aarch64-unknown-linux-gnu
-            bin: replex
-            command: build
 
     runs-on: ${{ matrix.platform.os }}
     needs: get-next-version
@@ -83,7 +76,7 @@ jobs:
       - name: Build binary
         uses: houseabsolute/actions-rust-cross@v0
         with:
-          command: ${{ matrix.platform.command }}
+          command: build
           target: ${{ matrix.platform.target }}
           args: "--locked --release"
 
@@ -105,9 +98,6 @@ jobs:
     needs:
       - build
       - get-next-version
-
-    # 🚨 évite les problèmes avec PR externes
-    if: github.event_name != 'pull_request_target'
 
     steps:
       - name: Checkout
