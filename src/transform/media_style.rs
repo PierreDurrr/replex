@@ -37,26 +37,28 @@ impl Transform for MediaStyleTransform {
                 item.r#type = style_def.child_type.clone().unwrap();
             }
 
-            let mut guid = item.guid.clone().unwrap();
-            if guid.starts_with("plex://episode") && item.parent_guid.is_some() {    
-                guid = item.parent_guid.clone().unwrap();
-            }
-            guid = guid.replace("plex://", "");
+            let cover_art = if let Some(custom_url) = item.get_label_value("REPLEXHEROURL") {
+                Some(custom_url)
+            } else {
+                let mut guid = item.guid.clone().unwrap();
+                if guid.starts_with("plex://episode") && item.parent_guid.is_some() {
+                    guid = item.parent_guid.clone().unwrap();
+                }
+                guid = guid.replace("plex://", "");
 
-            //let cover_art = Some(format!("https://metadata-static.plex.tv/7/gracenote/779d16f22ad2f3a002937133f8744e5d.jpg"));
-            // let cover_art = Some(format!("/replex/image/hero/{}?X-Plex-Token={}", 
-            let cover_art = Some(format!("{}://{}/replex/image/hero/{}?X-Plex-Token={}", 
-                match options.forwarded_proto {
-                    Some(v) => v,
-                    None => "http".to_string()
-                },
-                match options.forwarded_host {
-                    Some(v) => v,
-                    None => options.host.clone().unwrap()
-                },
-                guid,
-                options.token.clone().unwrap()
-            ));
+                Some(format!("{}://{}/replex/image/hero/{}?X-Plex-Token={}",
+                    match options.forwarded_proto.clone() {
+                        Some(v) => v,
+                        None => "http".to_string()
+                    },
+                    match options.forwarded_host.clone() {
+                        Some(v) => v,
+                        None => options.host.clone().unwrap()
+                    },
+                    guid,
+                    options.token.clone().unwrap()
+                ))
+            };
             //dbg!(&cover_art);
             if cover_art.is_some() {
                 // c.art = art.clone();
