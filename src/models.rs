@@ -1302,13 +1302,12 @@ impl MetaData {
         for label in &self.labels {
             let lower = label.tag.to_lowercase();
             if lower.starts_with(&search) {
-                // Return everything after the "::"
                 return Some(label.tag[search.len()..].to_string());
             }
         }
         None
     }
-    
+
     /// if this hub should be hero style
     pub async fn is_hero(&self, plex_client: PlexClient) -> Result<bool> {
         if !self.is_hub() {
