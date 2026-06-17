@@ -135,6 +135,14 @@ pub fn route() -> Router {
         )
         .push(
             Router::new()
+                .path("/hubs/home")
+                .hoop(transform_req_include_guids)
+                .hoop(transform_req_android)
+                .hoop(proxy_for_transform)
+                .get(transform_hubs_response),
+        )
+        .push(
+            Router::new()
                 .path("/replex/test_proxy/<**rest>")
                 .goal(test_proxy_request),
         )
@@ -601,38 +609,40 @@ pub async fn transform_req_content_directory(
     let plex_client = PlexClient::from_context(&context);
     let content_type = get_content_type_from_headers(req.headers_mut());
 
-    if context.clone().pinned_content_directory_id.is_some()
-        && context.clone().content_directory_id.unwrap()[0]
-            != context.clone().pinned_content_directory_id.unwrap()[0]
-    {
-        // We only fill the first one.
-        let mut container: MediaContainerWrapper<MediaContainer> =
-            MediaContainerWrapper::default();
-        container.content_type = content_type.clone();
-        container.media_container.size = Some(0);
-        // container.media_container.allow_sync = Some("1".to_string());
-        container.media_container.identifier =
-            Some("com.plexapp.plugins.library".to_string());
-        res.render(container);
-        ctrl.skip_rest();
-        return;
-    }
+    // Old clients send both contentDirectoryID and pinnedContentDirectoryID.
+    // The new experience sends neither — in that case we let the request pass
+    // through unmodified so the proxy doesn't return an empty container.
+    if let Some(ref pinned) = context.clone().pinned_content_directory_id {
+        let is_first = context
+            .clone()
+            .content_directory_id
+            .as_ref()
+            .map(|c| c[0] == pinned[0])
+            .unwrap_or(true); // absent → traiter comme premier directory
 
-    if context.clone().pinned_content_directory_id.is_some() {
-        // first directory, load everything here because we wanna reemiiiixxx
+        if !is_first {
+            // Not the first directory: return empty container so only the
+            // first slot triggers a full merged fetch.
+            let mut container: MediaContainerWrapper<MediaContainer> =
+                MediaContainerWrapper::default();
+            container.content_type = content_type.clone();
+            container.media_container.size = Some(0);
+            container.media_container.identifier =
+                Some("com.plexapp.plugins.library".to_string());
+            res.render(container);
+            ctrl.skip_rest();
+            return;
+        }
+
+        // First directory: expand contentDirectoryID to all pinned IDs so
+        // HubInterleaveTransform can merge hubs from every library.
         add_query_param_salvo(
             req,
             "contentDirectoryID".to_string(),
-            context
-                .clone()
-                .pinned_content_directory_id
-                .clone()
-                .unwrap()
-                .iter()
-                .join(",")
-                .to_string(),
+            pinned.iter().join(","),
         );
     }
+    // pinnedContentDirectoryID absent → new experience, pass through as-is.
 }
 
 #[handler]
@@ -653,7 +663,7 @@ pub async fn transform_req_android(
     let context: PlexContext = req.extract().await.unwrap();
     
     let mut count = context.clone().count.unwrap_or(25);
-    match context.platform.unwrap() {
+    match context.platform.unwrap_or_default() {
         Platform::Android => count = 50,
         _ => (),
     }
