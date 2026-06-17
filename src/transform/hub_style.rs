@@ -48,10 +48,20 @@ pub enum DeviceType {
 }
 
 impl DeviceType {
-    pub fn from_product(product: String) -> DeviceType {
-        match product.to_lowercase() {
-            x if x.contains("(tv)") => DeviceType::Tv,
-            _ => DeviceType::Mobile,
+    pub fn from_context(context: &PlexContext) -> DeviceType {
+        let product = context.product.clone().unwrap_or_default().to_lowercase();
+        let device = context.device.clone().unwrap_or_default().to_lowercase();
+        let model = context.model.clone().unwrap_or_default().to_lowercase();
+
+        if product.contains("(tv)")
+            || product.contains("apple tv")
+            || product.contains("android tv")
+            || device.contains("apple tv")
+            || model.contains("appletv")
+        {
+            DeviceType::Tv
+        } else {
+            DeviceType::Mobile
         }
     }
 }
@@ -60,7 +70,7 @@ impl ClientHeroStyle {
     pub fn from_context(context: PlexContext) -> Self {
         // pub fn android(product: String, platform_version: String) -> Self {
         let product = context.product.clone().unwrap_or_default();
-        let device_type = DeviceType::from_product(product.clone());
+        let device_type = DeviceType::from_context(&context);
         let platform = context.platform.clone().unwrap_or_default();
         let platform_version =
             context.platform_version.clone().unwrap_or_default();
