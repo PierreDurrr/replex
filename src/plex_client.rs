@@ -357,7 +357,7 @@ impl PlexClient {
     ) -> Result<MediaContainerWrapper<MediaContainer>> {
         let config: Config = Config::figment().extract().unwrap();
         let url = format!(
-            "https://metadata.provider.plex.tv/library/metadata/{}",
+            "https://discover.provider.plex.tv/library/metadata/{}",
             uuid
         );
 
